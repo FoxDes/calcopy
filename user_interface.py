@@ -1,33 +1,42 @@
+from telegram import Update
+from telegram.ext import CallbackContext
+
+
+def tele_print(update: Update, context: CallbackContext, output):
+    context.bot.send_message(chat_id=update.effective_chat.id, text=output)
+
+
 def show_greetings():
-    print("Добро пожаловать в CalcoPy!")
+    welcome = "Добро пожаловать в CalcoPy!"
+    return welcome
 
 
 def king_menu():
-    answer = input("1 - divide (Деление)\n2 - mult (Умножение)\n3 - pow (Возведенее в степень)\n4 - sqrt (Квадратный корень)\n5 - subtraction (Вычетание)\n6 - sum (Сложение)\n0 - выход\nКакую операцию Вам необходимо произвести? :")
-    return answer
+    return "1 - divide (Деление)\n2 - int divide (Целочисленное деление)\n3 - reminder (Остаток от деления)\n4 - mult (Умножение)\n5 - pow (Возведение в степень)\n6 - sqrt (Квадратный корень)\n7 - subtraction (Вычетание)\n8 - sum (Сложение)\n0 - выход\nКакую операцию Вам необходимо произвести?: "
 
 
 def enter_real_argument():
-    return input("Введите вещественный аргумент: ")
+    return "Введите вещественный аргумент: "
 
 
 def enter_complex_argument():
-    real_part = input("Введите вещественную часть: ")
-    complex_part = input("Введите комплексную часть: ")
-    return real_part, complex_part
+    return "Введите комлексный аргумент, <вещественная часть> <комплексная чать> разделены пробелом: "
 
 
 def show_result(result):
-    print(f"Результат выполнеия операции: {result}")
+    result_show = f"Результат выполнения операции: {result}"
+    return result_show
 
 
 def ask_for_complex():
-    return input("Использовать ли комплесные аргументы? ")
+    return "Использовать ли комплесные аргументы? [Да/Нет]"
 
 
 def show_error(error):
-    print(f"Произошла ошибка: {error}")
+    error_show = f"Произошла ошибка: {error}"
+    return error_show
 
 
 def show_goodbye():
-    print("Вы вышли из программы")
+    bye = "Вы вышли из программы"
+    return bye

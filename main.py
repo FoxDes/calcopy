@@ -1,65 +1,202 @@
 from enum import Enum
-import model_divide
 import model_mult
-import model_pow
+import model_divide
 import model_sqrt
+import model_pow
 import model_subtraction
 import model_sum
+from secret import KEY
 import user_interface as ui
+import excep
+import compl
+from telegram import Update
+from telegram.ext import (
+    Updater,
+    CommandHandler,
+    MessageHandler,
+    Filters,
+    ConversationHandler,
+    CallbackContext,
+)
 
 
 class OperationType(Enum):
     EXIT = 0
     DIVIDE = 1
-    MULTIPLY = 2
-    POWER = 3
-    SQRT = 4
-    SUBTRACTION = 5
-    SUM = 6
+    DIVIDE_INTEGER = 2
+    REMINDER = 3
+    MULTIPLY = 4
+    POWER = 5
+    SQRT = 6
+    SUBTRACTION = 7
+    SUM = 8
+
+
+current_operation: OperationType = OperationType.EXIT
+args = []
+
+# bread crumbs
+MENU, COMPLEXITY, REAL_ARGUMENT, COMPLEX_ARGUMENT = range(4)
+
+
+def check_yes_or_no(arg):
+    if arg.lower() == "да" or arg.lower() == "нет":
+        return arg.lower()
+    else:
+        return Exception(f"{arg}")
+
+
+def execute_operation(args):
+    match args[0]:
+        case OperationType.DIVIDE:
+            model_divide.init(args[1], args[2])
+            return model_divide.division()
+        case OperationType.DIVIDE_INTEGER:
+            model_divide.init(args[1], args[2])
+            return model_divide.integer_division()
+        case OperationType.REMINDER:
+            model_divide.init(args[1], args[2])
+            return model_divide.remainder_division()
+        case OperationType.MULTIPLY:
+            model_mult.init(args[1], args[2])
+            return model_mult.multyply()
+        case OperationType.POWER:
+            model_pow.init(args[1], args[2])
+            return model_pow.my_pow()
+        case OperationType.SQRT:
+            model_sqrt.init(args[1])
+            return model_sqrt.my_sqrt()
+        case OperationType.SUBTRACTION:
+            model_subtraction.init(args[1], args[2])
+            return model_subtraction.subtraction()
+        case OperationType.SUM:
+            model_sum.init(args[1], args[2])
+            return model_sum.my_sum()
+
+
+def parse_complex_arg(str_arg):
+    args = str_arg.split(" ")
+    return compl.get_compl(float(args[0]), float(args[1]))
+
+
+def start(update: Update, context: CallbackContext) -> int:
+    ui.tele_print(update=update, context=context, output=ui.show_greetings())
+    ui.tele_print(update=update, context=context, output=ui.king_menu())
+    return MENU
+
+
+def handle_menu(update: Update, context: CallbackContext) -> int:
+    global args
+    args = []
+    global current_operation
+    current_operation = excep.check(OperationType, update.message.text)
+    if current_operation == OperationType.EXIT:
+        ui.tele_print(update=update, context=context, output=ui.show_goodbye())
+        return ConversationHandler.END
+    elif issubclass(current_operation, OperationType):
+        ui.tele_print(update=update, context=context, output=ui.ask_for_complex())
+        return COMPLEXITY
+    else:
+        ui.tele_print(update=update, context=context, output=ui.show_error(current_operation))
+    return ConversationHandler.MENU
+
+
+def handle_сomplexity(update: Update, context: CallbackContext) -> int:
+    use_complexity = excep.check(check_yes_or_no, update.message.text)
+    if use_complexity == "да":
+        ui.tele_print(update=update, context=context, output=ui.enter_complex_argument())
+        return COMPLEX_ARGUMENT
+    elif use_complexity == "нет":
+        ui.tele_print(update=update, context=context, output=ui.enter_real_argument())
+        return REAL_ARGUMENT
+    else:
+        ui.tele_print(update=update, context=context, output=ui.show_error(f"{use_complexity} - не Да/Нет"))
+        return COMPLEXITY
+
+
+def handle_real_argument(update: Update, context: CallbackContext) -> int:
+    arg = excep.check(float, update.message.text)
+    if isinstance(arg, complex):
+        args.append(arg)
+        if current_operation == OperationType.SQRT:
+            operation_args = [current_operation].extend(args)
+            result = excep.check(execute_operation, operation_args)
+            if issubclass(result, Exception):
+                ui.tele_print(update=update, context=context, output=ui.show_error(result))
+            else:
+                ui.tele_print(update=update, context=context, output=ui.show_result(result))
+                ui.tele_print(update=update, context=context, output=ui.king_menu())
+                return MENU
+        else:
+            if len(args) < 2:
+                ui.tele_print(update=update, context=context, output=ui.enter_real_argument())
+                return REAL_ARGUMENT
+            else:
+                operation_args = [current_operation].extend(args)
+                result = excep.check(execute_operation, operation_args)
+                if issubclass(result, Exception):
+                    ui.tele_print(update=update, context=context, output=ui.show_error(result))
+                else:
+                    ui.tele_print(update=update, context=context, output=ui.show_result(result))
+                    ui.tele_print(update=update, context=context, output=ui.king_menu())
+                    return MENU
+    else:
+        ui.tele_print(update=update, context=context, output=ui.show_error(f"{arg} - не число"))
+        return REAL_ARGUMENT
+
+
+def handle_complex_argument(update: Update, context: CallbackContext) -> int:
+    arg = excep.check(parse_complex_arg, update.message.text)
+    if isinstance(arg, float):
+        args.append(arg)
+        if current_operation == OperationType.SQRT:
+            operation_args = [current_operation].extend(args)
+            result = excep.check(execute_operation, operation_args)
+            if issubclass(result, Exception):
+                ui.tele_print(update=update, context=context, output=ui.show_error(result))
+            else:
+                ui.tele_print(update=update, context=context, output=ui.show_result(result))
+                ui.tele_print(update=update, context=context, output=ui.king_menu())
+                return MENU
+        else:
+            if len(args) < 2:
+                ui.tele_print(update=update, context=context, output=ui.enter_complex_argument())
+                return COMPLEX_ARGUMENT
+            else:
+                operation_args = [current_operation].extend(args)
+                result = excep.check(execute_operation, operation_args)
+                if issubclass(result, Exception):
+                    ui.tele_print(update=update, context=context, output=ui.show_error(result))
+                else:
+                    ui.tele_print(update=update, context=context, output=ui.show_result(result))
+                    ui.tele_print(update=update, context=context, output=ui.king_menu())
+                    return MENU
+    else:
+        ui.tele_print(update=update, context=context, output=ui.show_error(f"{arg} - не число"))
+        return COMPLEX_ARGUMENT
+
+
+def cancel(update: Update, context: CallbackContext) -> int:
+    ui.tele_print(update=update, context=context, output=ui.show_goodbye())
+    return ConversationHandler.END
 
 
 def main():
-    ui.show_greetings()
-    while True:
-        operation_type = OperationType(int(ui.king_menu()))
-        match operation_type:
-            case OperationType.EXIT:
-                ui.show_goodbye()
-                break
-            case OperationType.DIVIDE:
-                perform_divide()
-            case OperationType.MULTIPLY:
-                perform_multiply()
-
-
-def ask_for_complexity():
-    if ui.ask_for_complex():
-        arg1real, arg1complex = ui.enter_complex_argument()
-        arg2real, arg2complex = ui.enter_complex_argument()
-        arg1 = complex(float(arg1real), float(arg1complex))
-        arg2 = complex(float(arg2real), float(arg2complex))
-    else:
-        arg1 = ui.enter_real_argument()
-        arg2 = ui.enter_real_argument()
-    return arg1, arg2
-
-
-def perform_divide():
-    try:
-        args = ask_for_complexity()
-        result = model_divide.division(args[0], args[1])
-        ui.show_result(result)
-    except Exception as ex:
-        ui.show_error(ex)
-
-
-def perform_multiply():
-    try:
-        args = ask_for_complexity()
-        result = model_mult.multyply(args[0], args[1])
-        ui.show_result(result)
-    except Exception as ex:
-        ui.show_error(ex)
+    updater = Updater(KEY)
+    dispatcher = updater.dispatcher
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('start', start)],
+        states={
+            MENU: [MessageHandler(Filters.all, handle_menu)],
+            COMPLEXITY: [MessageHandler(Filters.all, handle_сomplexity)],
+            REAL_ARGUMENT: [MessageHandler(Filters.all, handle_real_argument)],
+            COMPLEX_ARGUMENT: [MessageHandler(Filters.all, handle_complex_argument)],
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
+    )
+    dispatcher.add_handler(conv_handler)
+    updater.start_polling()
+    updater.idle()
 
 
 if __name__ == '__main__':
